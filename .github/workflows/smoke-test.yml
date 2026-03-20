@@ -1,0 +1,101 @@
+name: Smoke Test
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'master'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install_from_local_manifest:
+    name: Install From Local Manifest
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Bucket
+        uses: actions/checkout@v4
+
+      - name: Install Scoop
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+          $scoopShims = Join-Path $env:USERPROFILE 'scoop\shims'
+          Add-Content -Path $env:GITHUB_PATH -Value $scoopShims
+          $env:PATH = "$scoopShims;$env:PATH"
+
+          scoop config aria2-warning-enabled false
+          scoop --version
+          git --version
+
+      - name: Install rc From Local Manifest
+        shell: pwsh
+        run: |
+          $manifest = Join-Path $PWD 'bucket\rc.json'
+
+          scoop install $manifest
+          rc --version
+          rc --help
+
+      - name: Cleanup Local Install
+        if: always()
+        shell: pwsh
+        run: |
+          $scoopShims = Join-Path $env:USERPROFILE 'scoop\shims'
+          $env:PATH = "$scoopShims;$env:PATH"
+          $appDir = Join-Path $env:USERPROFILE 'scoop\apps\rc'
+
+          if (Test-Path $appDir) {
+            scoop uninstall rc
+          }
+
+  install_from_published_bucket:
+    name: Install From Published Bucket
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    steps:
+      - name: Install Scoop
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+          $scoopShims = Join-Path $env:USERPROFILE 'scoop\shims'
+          Add-Content -Path $env:GITHUB_PATH -Value $scoopShims
+          $env:PATH = "$scoopShims;$env:PATH"
+
+          scoop config aria2-warning-enabled false
+          scoop --version
+          git --version
+
+      - name: Install rc From Published Bucket
+        shell: pwsh
+        run: |
+          $bucketRepo = '${{ github.server_url }}/${{ github.repository }}'
+
+          scoop bucket add rustfs $bucketRepo
+          scoop install rustfs/rc
+          rc --version
+          rc --help
+
+      - name: Cleanup Published Bucket Install
+        if: always()
+        shell: pwsh
+        run: |
+          $scoopShims = Join-Path $env:USERPROFILE 'scoop\shims'
+          $env:PATH = "$scoopShims;$env:PATH"
+          $appDir = Join-Path $env:USERPROFILE 'scoop\apps\rc'
+          $bucketDir = Join-Path $env:USERPROFILE 'scoop\buckets\rustfs'
+
+          if (Test-Path $appDir) {
+            scoop uninstall rc
+          }
+
+          if (Test-Path $bucketDir) {
+            scoop bucket rm rustfs
+          }
