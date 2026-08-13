@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/rustfs/cli/releases/download/v0.1.31/rustfs-cli-windows-amd64-v0.1.31.zip",
-            "hash": "681a2dbd34fb21b1825a8314d1e16674dca481d2eeeae7016cb09f7058ffdb6c"
+            "hash": "681a2dbd34fb21b1825a8314d1e16674dca481d2eeeae7016cb09f7058ffdb6crustfs-cli-windows-amd64-v0.1.31.zip"
         }
     },
     "bin": "rc.exe",
